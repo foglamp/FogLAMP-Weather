@@ -183,7 +183,7 @@ def plugin_register_ingest(handle, callback, ingest_ref):
 class WeatherReport(object):
     """ Handle integration with OpenWeatherMap API """
 
-    __slots__ = ['_interval', '_loop', 'url', 'city', 'appid', 'asset_name', '_handler']
+    __slots__ = ['_interval', 'url', 'city', 'appid', 'asset_name', '_handler']
 
     def __init__(self, url, city, appid, rate, asset_name):
         self._interval = float(rate)
