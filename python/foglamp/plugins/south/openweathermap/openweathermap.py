@@ -145,7 +145,6 @@ def plugin_reconfigure(handle, new_config):
         new_handle: new handle to be used in the future calls
     Raises:
     """
-    global loop
     _LOGGER.info("Old config for OpenWeatherMap plugin {} \n new config {}".format(handle, new_config))
 
     # plugin_shutdown
@@ -159,7 +158,6 @@ def plugin_reconfigure(handle, new_config):
 
 
 def plugin_shutdown(handle):
-    global loop, task
     try:
         _LOGGER.info('South OpenWeatherMap plugin shutting down.')
         task.stop()
@@ -189,7 +187,6 @@ class WeatherReport(object):
 
     def __init__(self, url, city, appid, rate, asset_name):
         self._interval = float(rate)
-        self._loop = loop
         self.url = url
         self.city = city
         self.appid = appid
@@ -198,10 +195,10 @@ class WeatherReport(object):
 
     def _run(self):
         self.fetch()
-        self._handler = self._loop.call_later(self._interval, self._run)
+        self._handler = loop.call_later(self._interval, self._run)
 
     def start(self):
-        self._handler = self._loop.call_later(self._interval, self._run)
+        self._handler = loop.call_later(self._interval, self._run)
 
     def stop(self):
         self._handler.cancel()
@@ -211,10 +208,10 @@ class WeatherReport(object):
             conn = http.client.HTTPConnection(self.url)
             conn.request('GET', '/data/2.5/weather?q={}&APPID={}'.format(self.city, self.appid))
             r = conn.getresponse()
-            if r.status != 200:
-                raise ValueError(r.msg)
             res = r.read().decode()
             conn.close()
+            if r.status != 200:
+                raise ValueError(res)
 
             jdoc = json.loads(res)
             reads = {
@@ -233,7 +230,6 @@ class WeatherReport(object):
                 'readings': reads
             }
             async_ingest.ingest_callback(c_callback, c_ingest_ref, data)
-        except (ValueError, Exception) as ex:
+        except ValueError as ex:
             err = "Unable to fetch information from api.openweathermap: {}".format(str(ex))
-            _LOGGER.exception(err)
-            raise web.HTTPServiceUnavailable(reason=err)
+            _LOGGER.error(err)
